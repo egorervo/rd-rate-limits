@@ -1,4 +1,4 @@
-package ratelimit.dao;
+package ratelimit.storage;
 
 import ratelimit.common.RateLimitWindowData;
 

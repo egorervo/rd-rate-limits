@@ -1,21 +1,24 @@
 package ratelimit.service;
 
-import com.antkorwin.xsync.XSync;
 import ratelimit.common.LimitRule;
 import ratelimit.common.RateLimitWindowData;
-import ratelimit.dao.RateLimitStorage;
+import ratelimit.storage.RateLimitStorage;
+import ratelimit.service.synchronization.Synchronizer;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SlidingWindowRateLimiter implements RateLimiter {
-    private static XSync<String> XSYNC = new XSync<>();
     private final Set<LimitRule> rules;
     private final RateLimitStorage rateLimitStorage;
+    private final Synchronizer synchronizer;
 
-    public SlidingWindowRateLimiter(Set<LimitRule> rules, RateLimitStorage rateLimitStorage) {
-        this.rateLimitStorage = rateLimitStorage;
+    public SlidingWindowRateLimiter(Set<LimitRule> rules,
+                                    RateLimitStorage rateLimitStorage,
+                                    Synchronizer synchronizer) {
         this.rules = rules;
+        this.rateLimitStorage = rateLimitStorage;
+        this.synchronizer = synchronizer;
         validateRules();
     }
 
@@ -27,7 +30,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
     @Override
     public boolean isLimitNotExceeded(String key, int delta) {
         final long now = System.currentTimeMillis();
-        return XSYNC.evaluate(key, () -> evaluateIsLimitNotExceeded(key, delta, now));
+        return this.synchronizer.evaluate(key, () -> evaluateIsLimitNotExceeded(key, delta, now));
     }
 
     private boolean evaluateIsLimitNotExceeded(String key, int delta, long now) {

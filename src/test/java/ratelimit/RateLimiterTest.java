@@ -1,15 +1,17 @@
 package ratelimit;
 
-import ratelimit.common.LimitRule;
 import org.junit.jupiter.api.Test;
-import ratelimit.dao.InMemoryRateLimitStorage;
+import ratelimit.common.LimitRule;
 import ratelimit.service.RateLimiter;
 import ratelimit.service.SlidingWindowRateLimiter;
+import ratelimit.service.synchronization.InMemorySynchronizer;
+import ratelimit.storage.InMemoryRateLimitStorage;
 
 import java.time.Duration;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RateLimiterTest {
 
@@ -18,7 +20,7 @@ public class RateLimiterTest {
         RateLimiter rateLimiter = new SlidingWindowRateLimiter(Set.of(
                 new LimitRule(Duration.ofSeconds(2), 2),
                 new LimitRule(Duration.ofSeconds(10), 5)
-        ), new InMemoryRateLimitStorage());
+        ), new InMemoryRateLimitStorage(), new InMemorySynchronizer());
 
         int cyclesToTest = 3;
         for (int i = 0; i < cyclesToTest; i++) {
