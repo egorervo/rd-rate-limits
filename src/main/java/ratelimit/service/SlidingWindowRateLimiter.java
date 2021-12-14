@@ -1,20 +1,20 @@
-package ratelimit;
+package ratelimit.service;
 
 import com.antkorwin.xsync.XSync;
-import common.LimitRule;
-import common.RateLimitWindowData;
+import ratelimit.common.LimitRule;
+import ratelimit.common.RateLimitWindowData;
+import ratelimit.dao.RateLimitStorage;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SlidingWindowRateLimiter implements RateLimiter {
     private static XSync<String> XSYNC = new XSync<>();
     private final Set<LimitRule> rules;
-    private final Map<String, Set<RateLimitWindowData>> windowDataMap = new HashMap<>();
+    private final RateLimitStorage rateLimitStorage;
 
-    public SlidingWindowRateLimiter(Set<LimitRule> rules) {
+    public SlidingWindowRateLimiter(Set<LimitRule> rules, RateLimitStorage rateLimitStorage) {
+        this.rateLimitStorage = rateLimitStorage;
         this.rules = rules;
         validateRules();
     }
@@ -45,7 +45,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
             for (RateLimitWindowData rateLimitWindowData : rateLimitWindowDatas) {
                 rateLimitWindowData.setCount(rateLimitWindowData.getCount() + delta);
             }
-            windowDataMap.put(key, rateLimitWindowDatas);
+            rateLimitStorage.storeRateLimitWindowData(key, rateLimitWindowDatas);
             return true;
         }
 
@@ -57,7 +57,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
     }
 
     private Set<RateLimitWindowData> getRateLimitWindowData(String key, long now) {
-        Set<RateLimitWindowData> rateLimitWindowDatas = windowDataMap.get(key);
+        Set<RateLimitWindowData> rateLimitWindowDatas = rateLimitStorage.getRateLimitWindowData(key);
         if (null == rateLimitWindowDatas) {
             rateLimitWindowDatas = this.rules.stream()
                     .map(rule -> RateLimitWindowData.builder()
@@ -67,7 +67,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
                             .durationMilliSeconds(rule.getDuration().toMillis())
                             .build())
                     .collect(Collectors.toSet());
-            windowDataMap.put(key, rateLimitWindowDatas);
+            rateLimitStorage.storeRateLimitWindowData(key, rateLimitWindowDatas);
         }
         return rateLimitWindowDatas;
     }

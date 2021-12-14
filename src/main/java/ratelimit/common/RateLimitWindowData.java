@@ -1,4 +1,4 @@
-package common;
+package ratelimit.common;
 
 import lombok.Builder;
 import lombok.Data;
