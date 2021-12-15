@@ -2,7 +2,7 @@ package ratelimit.service;
 
 public interface RateLimiter {
 
-    boolean isLimitNotExceeded(String key);
+    boolean checkLimitExceededAndIncrement(String key);
 
-    boolean isLimitNotExceeded(String key, int delta);
+    boolean checkLimitExceededAndIncrement(String key, int delta);
 }

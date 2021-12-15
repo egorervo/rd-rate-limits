@@ -2,8 +2,8 @@ package ratelimit.service;
 
 import ratelimit.common.LimitRule;
 import ratelimit.common.RateLimitWindowData;
-import ratelimit.storage.RateLimitStorage;
 import ratelimit.service.synchronization.Synchronizer;
+import ratelimit.storage.RateLimitStorage;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,12 +23,12 @@ public class SlidingWindowRateLimiter implements RateLimiter {
     }
 
     @Override
-    public boolean isLimitNotExceeded(String key) {
-        return isLimitNotExceeded(key, 1);
+    public boolean checkLimitExceededAndIncrement(String key) {
+        return checkLimitExceededAndIncrement(key, 1);
     }
 
     @Override
-    public boolean isLimitNotExceeded(String key, int delta) {
+    public boolean checkLimitExceededAndIncrement(String key, int delta) {
         final long now = System.currentTimeMillis();
         return this.synchronizer.evaluate(key, () -> evaluateIsLimitNotExceeded(key, delta, now));
     }
@@ -61,7 +61,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
 
     private Set<RateLimitWindowData> getRateLimitWindowData(String key, long now) {
         Set<RateLimitWindowData> rateLimitWindowDatas = rateLimitStorage.getRateLimitWindowData(key);
-        if (null == rateLimitWindowDatas) {
+        if (null == rateLimitWindowDatas || rateLimitWindowDatas.size() == 0) {
             rateLimitWindowDatas = this.rules.stream()
                     .map(rule -> RateLimitWindowData.builder()
                             .count(0)
