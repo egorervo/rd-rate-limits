@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class RedisRateLimitStorage implements RateLimitStorage {
+    private static final String PREFIX = "rate_limit_";
     private final RedissonClient redissonClient;
 
     public RedisRateLimitStorage(RedissonClient redissonClient) {
@@ -18,7 +19,7 @@ public class RedisRateLimitStorage implements RateLimitStorage {
 
     @Override
     public Set<RateLimitWindowData> getRateLimitWindowData(String key) {
-        RMap<String, String> map = redissonClient.getMap(key);
+        RMap<String, String> map = redissonClient.getMap(PREFIX + key);
         Collection<String> values = map.values();
         return values.stream().map(str -> new Gson().fromJson(str, RateLimitWindowData.class))
                 .collect(Collectors.toSet());
@@ -26,7 +27,7 @@ public class RedisRateLimitStorage implements RateLimitStorage {
 
     @Override
     public void storeRateLimitWindowData(String key, Set<RateLimitWindowData> data) {
-        RMap<String, String> map = redissonClient.getMap(key);
+        RMap<String, String> map = redissonClient.getMap(PREFIX + key);
         for (RateLimitWindowData d : data) {
             map.fastPut(String.format("%s:%s", d.getLimit(), d.getDurationMilliSeconds()), new Gson().toJson(d));
         }
