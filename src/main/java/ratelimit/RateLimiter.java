@@ -1,4 +1,4 @@
-package ratelimit.service;
+package ratelimit;
 
 public interface RateLimiter {
 

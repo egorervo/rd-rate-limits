@@ -1,5 +1,7 @@
 package ratelimit;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -7,12 +9,11 @@ import org.redisson.client.codec.StringCodec;
 import org.redisson.config.Config;
 import org.redisson.config.SingleServerConfig;
 import ratelimit.common.LimitRule;
-import ratelimit.service.RateLimiter;
-import ratelimit.service.SlidingWindowRateLimiter;
 import ratelimit.service.synchronization.InMemorySynchronizer;
 import ratelimit.service.synchronization.RedisSynchronizer;
 import ratelimit.storage.InMemoryRateLimitStorage;
 import ratelimit.storage.RedisRateLimitStorage;
+import redis.embedded.RedisServer;
 
 import java.time.Duration;
 import java.util.Set;
@@ -21,6 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RateLimiterTest {
+    public static final int PORT = 6400;
+    private static RedisServer redisServer;
+
+    @BeforeAll
+    public static void init() {
+        redisServer = new RedisServer(PORT);
+        redisServer.start();
+    }
+
+    @AfterAll
+    public static void destroy() {
+        redisServer.stop();
+    }
 
     @Test
     public void rateLimitsTest() throws InterruptedException {
@@ -96,11 +110,8 @@ public class RateLimiterTest {
         try {
             Config config = new Config();
             SingleServerConfig singleServerConfig = config.useSingleServer();
-            singleServerConfig.setAddress("redis://localhost:6379");
+            singleServerConfig.setAddress("redis://localhost:" + PORT);
             config.setCodec(new StringCodec());
-//            if (redisProperties.isAuthorized()) {
-//                singleServerConfig.setPassword(redisProperties.getSecuredPassword());
-//            }
             return Redisson.create(config);
         } catch (Exception e) {
             e.printStackTrace();

@@ -2,12 +2,12 @@ package ratelimit.storage;
 
 import ratelimit.common.RateLimitWindowData;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryRateLimitStorage implements RateLimitStorage {
-    private final Map<String, Set<RateLimitWindowData>> windowDataMap = new HashMap<>();
+    private final Map<String, Set<RateLimitWindowData>> windowDataMap = new ConcurrentHashMap<>();
 
     @Override
     public Set<RateLimitWindowData> getRateLimitWindowData(String key) {

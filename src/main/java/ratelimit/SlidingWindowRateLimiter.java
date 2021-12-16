@@ -1,4 +1,4 @@
-package ratelimit.service;
+package ratelimit;
 
 import ratelimit.common.LimitRule;
 import ratelimit.common.RateLimitWindowData;
