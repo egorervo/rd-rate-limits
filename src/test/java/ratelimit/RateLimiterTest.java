@@ -16,8 +16,15 @@ import ratelimit.storage.RedisRateLimitStorage;
 import redis.embedded.RedisServer;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,6 +65,48 @@ public class RateLimiterTest {
 
         int cyclesToTest = 3;
         doTest(rateLimiter, cyclesToTest);
+    }
+
+    @Test
+    public void multiThreadingRateLimitsTest() throws InterruptedException {
+        RateLimiter rateLimiter = new SlidingWindowRateLimiter(Set.of(
+                new LimitRule(Duration.ofSeconds(10), 100)
+        ), new InMemoryRateLimitStorage(), new InMemorySynchronizer());
+
+        doMultiThreadingTest(rateLimiter);
+    }
+
+    @Test
+    public void multiThreadingRedisRateLimitsTest() throws InterruptedException {
+
+        RedissonClient client = createClient();
+        RateLimiter rateLimiter = new SlidingWindowRateLimiter(Set.of(
+                new LimitRule(Duration.ofSeconds(10), 100)
+        ), new RedisRateLimitStorage(client), new RedisSynchronizer(client));
+
+
+        doMultiThreadingTest(rateLimiter);
+    }
+
+    private void doMultiThreadingTest(RateLimiter rateLimiter) throws InterruptedException {
+        final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        List<Future<Boolean>> futures = new ArrayList<>();
+        for (int i=0; i<100; i++) {
+            futures.add(executorService.submit(() -> rateLimiter.checkLimitExceededAndIncrement("127.0.0.1", 1)));
+        }
+        executorService.shutdown();
+        executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        boolean allCallsAllowed = futures.stream().map(f -> {
+            try {
+                return f.get();
+            } catch (Exception e) {
+                return false;
+            }
+        }).reduce((f1, f2) -> f1 && f2).get();
+
+        assertEquals(futures.size(), 100);
+        assertTrue(allCallsAllowed);
+        assertFalse(rateLimiter.checkLimitExceededAndIncrement("127.0.0.1", 1));
     }
 
     private void doTest(RateLimiter rateLimiter, int cyclesToTest) throws InterruptedException {
